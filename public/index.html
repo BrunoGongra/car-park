@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Lot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Parking Lot</h1>
+<form id="carForm">
+    <input type="text" id="plate" placeholder="Car Plate" required>
+    <input type="text" id="model" placeholder="Model" required>
+    <input type="text" id="brand" placeholder="Brand" required>
+    <input type="text" id="color" placeholder="Color" required>
+    <button type="submit">Add Car</button>
+</form>
+<ul id="carList"></ul>
+<script>
+    const form = document.getElementById('carForm');
+    const plateInput = document.getElementById('plate');
+    const modelInput = document.getElementById('model');
+    const brandInput = document.getElementById('brand');
+    const colorInput = document.getElementById('color');
+    const carList = document.getElementById('carList');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const car = {
+            plate: plateInput.value,
+            model: modelInput.value,
+            brand: brandInput.value,
+            color: colorInput.value
+        };
+
+        try {
+            const response = await fetch('/cars', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(car)
+            });
+
+            if (response.ok) {
+                const newCar = await response.json();
+                addCarToList(newCar);
+                plateInput.value = '';
+                modelInput.value = '';
+                brandInput.value = '';
+                colorInput.value = '';
+            } else {
+                const error = await response.json();
+                alert(error.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+
+    function addCarToList(car) {
+        const li = document.createElement('li');
+        li.textContent = `${car.plate} - ${car.model} - ${car.brand} - ${car.color}`;
+
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Edit';
+        editButton.onclick = () => showEditForm(car, li);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Remove';
+        deleteButton.onclick = async () => {
+            try {
+                const response = await fetch(`/cars/${car.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    carList.removeChild(li);
+                } else {
+                    const error = await response.json();
+                    alert(error.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        };
+
+        li.appendChild(editButton);
+        li.appendChild(deleteButton);
+        carList.appendChild(li);
+    }
+
+    function showEditForm(car, li) {
+        const editForm = document.createElement('form');
+        const plateInput = document.createElement('input');
+        plateInput.type = 'text';
+        plateInput.value = car.plate;
+        const modelInput = document.createElement('input');
+        modelInput.type = 'text';
+        modelInput.value = car.model;
+        const brandInput = document.createElement('input');
+        brandInput.type = 'text';
+        brandInput.value = car.brand;
+        const colorInput = document.createElement('input');
+        colorInput.type = 'text';
+        colorInput.value = car.color;
+        const saveButton = document.createElement('button');
+        saveButton.type = 'submit';
+        saveButton.textContent = 'Save';
+
+        editForm.appendChild(plateInput);
+        editForm.appendChild(modelInput);
+        editForm.appendChild(brandInput);
+        editForm.appendChild(colorInput);
+        editForm.appendChild(saveButton);
+
+        li.innerHTML = '';
+        li.appendChild(editForm);
+
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const updatedCar = {
+                plate: plateInput.value,
+                model: modelInput.value,
+                brand: brandInput.value,
+                color: colorInput.value
+            };
+
+            try {
+                const response = await fetch(`/cars/${car.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedCar)
+                });
+
+                if (response.ok) {
+                    car.plate = updatedCar.plate;
+                    car.model = updatedCar.model;
+                    car.brand = updatedCar.brand;
+                    car.color = updatedCar.color;
+                    li.innerHTML = `${car.plate} - ${car.model} - ${car.brand} - ${car.color}`;
+                    li.appendChild(editButton);
+                    li.appendChild(deleteButton);
+                } else {
+                    const error = await response.json();
+                    alert(error.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    }
+
+    async function fetchCars() {
+        try {
+            const response = await fetch('/cars');
+            const cars = await response.json();
+            cars.forEach(car => {
+                addCarToList(car);
+            });
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    fetchCars();
+</script>
+</body>
+</html>
